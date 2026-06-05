@@ -21,8 +21,8 @@ const ui = new UIHandler({
     onRestartGame: () => {
         score = 0;
         ui.updateScore(score);
-        currentLevel = 5;
-        loadLevel(5);
+        currentLevel = 1;
+        loadLevel(1);
     }
 });
 
@@ -530,5 +530,5 @@ function draw() {
 
 function gameLoop() { if (!ui.isPaused) update(); draw(); requestAnimationFrame(gameLoop); }
 
-loadLevel(5);
+loadLevel(1);
 gameLoop();
