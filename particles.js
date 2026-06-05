@@ -15,3 +15,14 @@ export class Particle {
         c.restore();
     }
 }
+
+export function spawnBurst(particles, x, y, color, count, speed, lifeRange) {
+    for (let i = 0; i < count; i++) {
+        particles.push(new Particle(
+            x, y, color, 
+            (Math.random() - 0.5) * speed, 
+            (Math.random() - 0.5) * speed - (color === "#00ffcc" ? 1 : 0), 
+            lifeRange + Math.random() * 15
+        ));
+     }
+}
