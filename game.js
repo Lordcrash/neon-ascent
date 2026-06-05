@@ -449,10 +449,15 @@ function draw() {
     // Draw Enemy Human
     if (levelEnemy && levelEnemy.active && !levelEnemy.dead) {
         ctx.save();
+        
+        const isMilitary = currentLevel === 5;
+        const mainColor = isMilitary ? "#00ff66" : "#ff0055";
+        const shadowColor = isMilitary ? "#00ff66" : "#ff0055";
+        
         ctx.shadowBlur = 10;
-        ctx.shadowColor = "#ff0055";
-        ctx.fillStyle = "#ff0055";
-        ctx.strokeStyle = "#ff0055";
+        ctx.shadowColor = shadowColor;
+        ctx.fillStyle = mainColor;
+        ctx.strokeStyle = mainColor;
         ctx.lineWidth = 2;
 
         const ex = levelEnemy.x + levelEnemy.width / 2;
@@ -463,19 +468,107 @@ function draw() {
         ctx.arc(ex, ey + 6, 6, 0, Math.PI * 2);
         ctx.fill();
 
-        // Torso / Neck
-        ctx.beginPath();
-        ctx.moveTo(ex, ey + 12);
-        ctx.lineTo(ex, ey + 24);
-        ctx.stroke();
+        if (isMilitary) {
+            // Draw military helmet on top of head
+            ctx.fillStyle = "#1b4d22";
+            ctx.beginPath();
+            ctx.arc(ex, ey + 6, 7, Math.PI, 0); // top half
+            ctx.fill();
+
+            // Draw glowing red visor
+            ctx.strokeStyle = "#ff0033";
+            ctx.lineWidth = 2;
+            ctx.shadowColor = "#ff0033";
+            ctx.beginPath();
+            const facingDir = levelEnemy.vx > 0 ? 1 : -1;
+            ctx.moveTo(ex, ey + 6);
+            ctx.lineTo(ex + 6 * facingDir, ey + 6);
+            ctx.stroke();
+            
+            // Reset stroke style back to main color for torso/limbs
+            ctx.strokeStyle = mainColor;
+            ctx.shadowColor = shadowColor;
+            ctx.lineWidth = 2;
+        }
+
+        // Torso / Neck / Armor
+        if (isMilitary) {
+            // Draw body armor vest
+            ctx.fillStyle = "#1b4d22";
+            ctx.fillRect(ex - 4, ey + 12, 8, 12);
+            // Draw tactical harness strap
+            ctx.strokeStyle = "#ffffff";
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(ex - 4, ey + 12);
+            ctx.lineTo(ex + 4, ey + 24);
+            ctx.stroke();
+            // Restore line width/style
+            ctx.strokeStyle = mainColor;
+            ctx.lineWidth = 2;
+        } else {
+            ctx.beginPath();
+            ctx.moveTo(ex, ey + 12);
+            ctx.lineTo(ex, ey + 24);
+            ctx.stroke();
+        }
 
         // Arms (swinging)
         const walkCycle = Math.sin(Date.now() * 0.01);
-        ctx.beginPath();
-        ctx.moveTo(ex - 8 * walkCycle, ey + 15);
-        ctx.lineTo(ex, ey + 14);
-        ctx.lineTo(ex + 8 * walkCycle, ey + 15);
-        ctx.stroke();
+        const facingDir = levelEnemy.vx > 0 ? 1 : -1;
+
+        if (isMilitary) {
+            // Aggressive human holds a military rifle
+            // Arm holding weapon forward
+            ctx.beginPath();
+            ctx.moveTo(ex, ey + 14);
+            ctx.lineTo(ex + 10 * facingDir, ey + 16 + 2 * walkCycle);
+            ctx.stroke();
+
+            // Tactical Knife
+            ctx.save();
+            ctx.shadowColor = "#00ff66";
+            ctx.translate(ex + 10 * facingDir, ey + 16 + 2 * walkCycle);
+            
+            // Blade
+            ctx.fillStyle = "#ffffff";
+            ctx.strokeStyle = "#00ff66";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            if (facingDir > 0) {
+                ctx.moveTo(0, 0);
+                ctx.lineTo(8, -2); // top back edge
+                ctx.lineTo(11, 1);  // sharp tip
+                ctx.lineTo(0, 2);  // bottom edge
+            } else {
+                ctx.moveTo(0, 0);
+                ctx.lineTo(-8, -2);
+                ctx.lineTo(-11, 1);
+                ctx.lineTo(0, 2);
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // Guard and Handle
+            ctx.fillStyle = "#1a1a1a";
+            ctx.strokeStyle = "#333333";
+            if (facingDir > 0) {
+                ctx.fillRect(-3, -1, 3, 4); // handle
+                ctx.fillRect(-1, -3, 1.5, 8); // handguard
+            } else {
+                ctx.fillRect(0, -1, 3, 4); // handle
+                ctx.fillRect(-0.5, -3, 1.5, 8); // handguard
+            }
+
+            ctx.restore();
+        } else {
+            ctx.beginPath();
+            ctx.moveTo(ex - 8 * walkCycle, ey + 15);
+            ctx.lineTo(ex, ey + 14);
+            ctx.lineTo(ex + 8 * walkCycle, ey + 15);
+            ctx.stroke();
+        }
 
         // Legs (walking)
         ctx.beginPath();
