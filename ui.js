@@ -76,6 +76,22 @@ export class UIHandler {
         });
 
         window.addEventListener("keydown", (e) => {
+            const titleScreen = document.getElementById("title-screen");
+            if (titleScreen && !titleScreen.classList.contains("hidden")) {
+                if (e.code === "Enter" || e.code === "Space") {
+                    e.preventDefault();
+                    document.getElementById("play-btn").click();
+                }
+                return; // Ignore all other keys
+            }
+            const victoryScreen = document.getElementById("victory-screen");
+            if (victoryScreen && !victoryScreen.classList.contains("hidden")) {
+                if (e.code === "Enter" || e.code === "Space") {
+                    e.preventDefault();
+                    document.getElementById("restart-all-btn").click();
+                }
+                return; // Ignore keys
+            }
             if (e.code === "Escape") {
                 e.preventDefault();
                 this.togglePause();

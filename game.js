@@ -10,6 +10,27 @@ const ctx = canvas.getContext("2d");
 // State globals
 let score = 0, currentLevel = 1, particles = [], platforms = [], collectibles = [], spikes = [], goal = null, levelSwitch = null, levelDoor = null;
 let levelPistol = null, levelGate = null, bullets = [], levelEnemy = null, hasPistol = false;
+let inTitleScreen = true;
+
+const titleScreenEl = document.getElementById("title-screen");
+const playBtn = document.getElementById("play-btn");
+const victoryScreenEl = document.getElementById("victory-screen");
+const finalScoreEl = document.getElementById("final-score");
+const restartAllBtn = document.getElementById("restart-all-btn");
+
+playBtn.addEventListener("click", () => {
+    inTitleScreen = false;
+    titleScreenEl.classList.add("hidden");
+    loadLevel(1);
+});
+
+restartAllBtn.addEventListener("click", () => {
+    victoryScreenEl.classList.add("hidden");
+    score = 0;
+    ui.updateScore(score);
+    currentLevel = 1;
+    loadLevel(1);
+});
 
 const ui = new UIHandler({
     onResume: () => {},
@@ -39,11 +60,11 @@ function spawnBurst(x, y, color, count, speed, lifeRange) {
 
 const player = {
     x: 100, y: 400, width: 20, height: 32, vx: 0, vy: 0, onGround: false, coyoteTime: 0, jumpBuffer: 0, color: "#00ffcc", trail: [],
-    facingLeft: false, shootCooldown: 0,
+    facingLeft: false, shootCooldown: 0, jumpReleased: true,
 
     reset(x, y) {
         this.x = x; this.y = y; this.vx = 0; this.vy = 0; this.onGround = false; this.coyoteTime = 0; this.jumpBuffer = 0; this.trail = [];
-        this.facingLeft = false; this.shootCooldown = 0;
+        this.facingLeft = false; this.shootCooldown = 0; this.jumpReleased = true;
     },
 
     update(plats) {
@@ -61,10 +82,16 @@ const player = {
         if (this.vy > PHYSICS.MAX_FALL_SPEED) this.vy = PHYSICS.MAX_FALL_SPEED;
 
         this.coyoteTime = this.onGround ? PHYSICS.COYOTE_TIME_MAX : Math.max(0, this.coyoteTime - 1);
-        this.jumpBuffer = jumpPressed ? PHYSICS.JUMP_BUFFER_MAX : Math.max(0, this.jumpBuffer - 1);
+        
+        if (!jumpPressed) {
+            this.jumpReleased = true;
+        }
+        
+        this.jumpBuffer = (jumpPressed && this.jumpReleased) ? PHYSICS.JUMP_BUFFER_MAX : Math.max(0, this.jumpBuffer - 1);
 
         if (this.jumpBuffer > 0 && this.coyoteTime > 0) {
             this.vy = PHYSICS.JUMP_FORCE; this.onGround = false; this.coyoteTime = 0; this.jumpBuffer = 0;
+            this.jumpReleased = false;
             spawnBurst(this.x + this.width/2, this.y + this.height, "#00ffcc", 8, 4, 20);
         }
         if (!jumpPressed && this.vy < PHYSICS.MINI_JUMP_FORCE) this.vy = PHYSICS.MINI_JUMP_FORCE;
@@ -229,6 +256,14 @@ function loadLevel(num) {
     ui.updateLevel(currentLevel);
 }
 
+function openDoor() {
+    if (levelDoor && !levelDoor.open) {
+        levelDoor.open = true;
+        platforms[levelDoor.platIndex] = { x: 0, y: 0, width: 0, height: 0, color: "transparent" };
+        spawnBurst(levelDoor.x + levelDoor.width/2, levelDoor.y + levelDoor.height/2, "#00ffcc", 15, 6, 25);
+    }
+}
+
 function update() {
     player.update(platforms);
     for (let i = particles.length - 1; i >= 0; i--) {
@@ -237,11 +272,7 @@ function update() {
 
     if (levelSwitch && !levelSwitch.pressed && checkOverlap(player, levelSwitch)) {
         levelSwitch.pressed = true;
-        if (levelDoor) {
-            levelDoor.open = true;
-            platforms[levelDoor.platIndex] = { x: 0, y: 0, width: 0, height: 0, color: "transparent" };
-            spawnBurst(levelDoor.x + levelDoor.width/2, levelDoor.y + levelDoor.height/2, "#00ffcc", 15, 6, 25);
-        }
+        openDoor();
     }
 
     // Level 5 Pistol mechanics
@@ -275,13 +306,7 @@ function update() {
                 levelEnemy.dead = true;
                 score += 500; ui.updateScore(score);
                 spawnBurst(levelEnemy.x + levelEnemy.width/2, levelEnemy.y + levelEnemy.height/2, "#ff007f", 25, 8, 30);
-                
-                // Open exit door
-                if (levelDoor && !levelDoor.open) {
-                    levelDoor.open = true;
-                    platforms[levelDoor.platIndex] = { x: 0, y: 0, width: 0, height: 0, color: "transparent" };
-                    spawnBurst(levelDoor.x + levelDoor.width/2, levelDoor.y + levelDoor.height/2, "#00ffcc", 20, 6, 25);
-                }
+                openDoor();
             }
         }
 
@@ -340,7 +365,13 @@ function update() {
 
     if (checkOverlap(player, goal)) {
         if (!levelEnemy || levelEnemy.dead) {
-            currentLevel++; loadLevel(currentLevel);
+            currentLevel++;
+            if (currentLevel > 5) {
+                finalScoreEl.textContent = score;
+                victoryScreenEl.classList.remove("hidden");
+            } else {
+                loadLevel(currentLevel);
+            }
         }
     }
 }
@@ -528,7 +559,11 @@ function draw() {
 }
 
 
-function gameLoop() { if (!ui.isPaused) update(); draw(); requestAnimationFrame(gameLoop); }
+function gameLoop() { 
+    if (!inTitleScreen && !ui.isPaused) update(); 
+    draw(); 
+    requestAnimationFrame(gameLoop); 
+}
 
 loadLevel(1);
 gameLoop();
